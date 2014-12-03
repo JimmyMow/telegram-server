@@ -5,8 +5,6 @@ var app = express();
 app.use(bodyParser.json());
 // Route implementation
 app.get('/api/users', function(req, res) {
-  console.log(req.query);
-
   if(req.query.operation === 'login') {
     var user;
     for(var i=0; i < users.length; i++) {
@@ -31,7 +29,17 @@ app.get('/api/users', function(req, res) {
 });
 
 app.get('/api/posts', function(req, res) {
-  res.send( {posts: posts} );
+  var userPosts = [], username = req.query.user;
+  if(username) {
+    for(var i=0; i < posts.length; i++) {
+      if( posts[i].user === username && posts[i].repost === null ) {
+        userPosts.push(posts[i]);
+      }
+    }
+    res.send( {posts: userPosts} );
+  } else {
+    res.send( {posts: posts} );
+  }
 });
 
 app.get('/api/users/:id', function(req, res) {
@@ -81,6 +89,13 @@ var server = app.listen(3000, function() {
     {
       id: 4,
       body: "Let's hoop",
+      createdAt: new Date(),
+      user: "JimmyMow",
+      repost: null
+    },
+    {
+      id: 5,
+      body: "Bobby Fischer is the greatest chess player of all time",
       createdAt: new Date(),
       user: "JimmyMow",
       repost: null
