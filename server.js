@@ -2,15 +2,15 @@ var express = require('express');
 var bodyParser = require('body-parser');
 var app = express();
 
-app.use(bodyParser());
+app.use(bodyParser.json());
 // Route implementation
-app.get('/users', function(req, res) {
+app.get('/api/users', function(req, res) {
   console.log(req.query);
 
   if(req.query.operation === 'login') {
     var user;
     for(var i=0; i < users.length; i++) {
-      if(users[i].id === req.query.username) {
+      if(users[i].id === req.query.id) {
         user = users[i];
       }
     }
@@ -20,33 +20,33 @@ app.get('/users', function(req, res) {
     }
 
     if(user.password === req.query.password) {
-      res.send(user);
+      res.send( {users: [user]} );
     } else {
       res.status(403).end();
     }
 
   } else {
-    res.send(users);
+    res.send({users: users});
   }
 });
 
-app.get('/posts', function(req, res) {
-  res.send(posts);
+app.get('/api/posts', function(req, res) {
+  res.send( {posts: posts} );
 });
 
-app.get('/users/:id', function(req, res) {
+app.get('/api/users/:id', function(req, res) {
   var userID = req.params.id;
 
   for(var i=0; i < users.length; i++) {
     if(users[i].id === userID) {
-      return res.send(users[i]);
+      return res.send( {user: users[i]} );
     }
   }
 
   res.status(404).end();
 });
 
-app.post('/users', function(req, res) {
+app.post('/api/users', function(req, res) {
   console.log(req.body);
   res.status(200).end();
 });
