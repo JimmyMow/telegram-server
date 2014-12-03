@@ -32,7 +32,7 @@ app.get('/api/posts', function(req, res) {
   var userPosts = [], username = req.query.user;
   if(username) {
     for(var i=0; i < posts.length; i++) {
-      if( posts[i].user === username && posts[i].repost === null ) {
+      if( (posts[i].user === username && posts[i].repost === null) || (posts[i].repost === username) ) {
         userPosts.push(posts[i]);
       }
     }
