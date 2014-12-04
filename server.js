@@ -57,12 +57,15 @@ app.get('/api/users/:id', function(req, res) {
 app.post('/api/users', function(req, res) {
   var user = req.body.user;
   users.push(user);
-  res.send({ user: user }).end();
+  res.send({ user: user });
 });
 
 app.post('/api/posts', function(req, res) {
-  console.log(req.body);
-  res.status(200).end();
+  var post = req.body.post;
+  post.id = posts.length + 1;
+  posts.push(post);
+
+  res.send({post: post});
 });
 
 var server = app.listen(3000, function() {
