@@ -1,27 +1,61 @@
 var express = require('express');
 var bodyParser = require('body-parser');
 var app = express();
+var session = require('express-session');
+
+// Passport
+var passport = require('passport'), LocalStrategy = require('passport-local').Strategy;
+app.use(passport.initialize());
+app.use(passport.session());
+
+passport.use(new LocalStrategy({
+    usernameField: 'id',
+  },
+  function(username, password, done) {
+    var user;
+    for(var i=0; i < users.length; i++) {
+      if(users[i].id === username){
+        user = users[i]
+      }
+    }
+
+    if(!user) {
+      return done(null, false, { message: 'Incorrect username.' });
+    }
+
+    if(user.password !== password) {
+        return done(null, false, { message: 'Incorrect password.' });
+    }
+
+    return done(null, user);
+  }
+));
 
 app.use(bodyParser.json());
 // Route implementation
 app.get('/api/users', function(req, res) {
   if(req.query.operation === 'login') {
-    var user;
-    for(var i=0; i < users.length; i++) {
-      if(users[i].id === req.query.id) {
-        user = users[i];
-      }
+  //   var user;
+  //   for(var i=0; i < users.length; i++) {
+  //     if(users[i].id === req.query.id) {
+  //       user = users[i];
+  //     }
+  //   }
+    console.log(req.query);
+    passport.authenticate('local'),
+    function(req, res) {
+      res.send({ users: [user] });
     }
 
-    if(!user) {
-      return res.status(404).end();
-    }
+    // if(!user) {
+    //   return res.status(404).end();
+    // }
 
-    if(user.password === req.query.password) {
-      res.send( {users: [user]} );
-    } else {
-      res.status(403).end();
-    }
+    // if(user.password === req.query.password) {
+    //   res.send( {users: [user]} );
+    // } else {
+    //   res.status(403).end();
+    // }
 
   } else {
     res.send({users: users});
