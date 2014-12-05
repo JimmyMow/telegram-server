@@ -4,7 +4,8 @@ var app = express();
 var session = require('express-session');
 
 // Passport
-var passport = require('passport'), LocalStrategy = require('passport-local').Strategy;
+var passport = require('passport')
+var LocalStrategy = require('passport-local').Strategy;
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -13,7 +14,7 @@ passport.use(new LocalStrategy({
   },
   function(username, password, done) {
     var user;
-    for(var i=0; i < users.length; i++) {
+    for(var i = 0; i < users.length; i++) {
       if(users[i].id === username){
         user = users[i]
       }
@@ -35,17 +36,18 @@ app.use(bodyParser.json());
 // Route implementation
 app.get('/api/users', function(req, res) {
   if(req.query.operation === 'login') {
-  //   var user;
-  //   for(var i=0; i < users.length; i++) {
-  //     if(users[i].id === req.query.id) {
-  //       user = users[i];
-  //     }
-  //   }
     console.log(req.query);
     passport.authenticate('local'),
     function(req, res) {
       res.send({ users: [user] });
     }
+  // Old way of AUTH
+  //   var user;
+  //   for(var i = 0; i < users.length; i++) {
+  //     if(users[i].id === req.query.id) {
+  //       user = users[i];
+  //     }
+  //   }
 
     // if(!user) {
     //   return res.status(404).end();
@@ -63,10 +65,11 @@ app.get('/api/users', function(req, res) {
 });
 
 app.get('/api/posts', function(req, res) {
-  var userPosts = [], username = req.query.user;
+  var userPosts = []
+  var username = req.query.user;
 
   if(username) {
-    for(var i=0; i < posts.length; i++) {
+    for(var i = 0; i < posts.length; i++) {
       if( (posts[i].user === username && posts[i].repost === null) || (posts[i].repost === username) ) {
         userPosts.push(posts[i]);
       }
@@ -80,7 +83,7 @@ app.get('/api/posts', function(req, res) {
 app.get('/api/users/:id', function(req, res) {
   var userID = req.params.id;
 
-  for(var i=0; i < users.length; i++) {
+  for(var i = 0; i < users.length; i++) {
     if(users[i].id === userID) {
       return res.send( {user: users[i]} );
     }
@@ -107,16 +110,20 @@ var server = app.listen(3000, function() {
 });
 
 app.delete('/api/posts/:id', function(req, res) {
-  var postID = parseInt(req.params.id);
+  var postID = req.params.id;
+  var index = null;
 
-  for(var i=0; i < posts.length; i++) {
-    if(posts[i].id === postID) {
-      var index = posts.indexOf(posts[i]);
+  for(var i = 0; i < posts.length; i++) {
+    if(posts[i].id == postID) {
+      index = posts.indexOf(posts[i]);
       posts.splice(index, 1);
       res.send({});
     }
   }
-  res.status(500).end();
+
+  if(index === null) {
+    res.status(500).end();
+  }
 });
 
 
