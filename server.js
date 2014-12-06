@@ -2,18 +2,39 @@ var express = require('express');
 var bodyParser = require('body-parser');
 var app = express();
 var session = require('express-session');
+var cookieParser = require('cookie-parser');
 
 // Passport
 var passport = require('passport')
 var LocalStrategy = require('passport-local').Strategy;
+app.use(cookieParser());
+app.use(bodyParser.json());
+app.use(session({
+  secret: 'scoop',
+  resave: false,
+  saveUninitialized: true
+}));
 app.use(passport.initialize());
 app.use(passport.session());
+
+passport.serializeUser(function(user, done) {
+  done(null, user.id);
+});
+
+passport.deserializeUser(function(id, done) {
+  for(var i = 0; i < users.length; i++) {
+    if(users[i].id === id) {
+      return done(null, users[i]);
+    }
+  }
+  done(null, null);
+});
 
 passport.use(new LocalStrategy({
     usernameField: 'id',
   },
   function(username, password, done) {
-    var user;
+    var user = null;
     for(var i = 0; i < users.length; i++) {
       if(users[i].id === username){
         user = users[i]
@@ -32,36 +53,34 @@ passport.use(new LocalStrategy({
   }
 ));
 
-app.use(bodyParser.json());
+// Middleware functions
+function checkForAuthentication(req, res, next) {
+  if( req.isAuthenticated() ) {
+    return next();
+  } else {
+    return res.status(403).end();
+  }
+}
+
 // Route implementation
 app.get('/api/users', function(req, res) {
   if(req.query.operation === 'login') {
-    console.log(req.query);
-    passport.authenticate('local'),
-    function(req, res) {
-      res.send({ users: [user] });
-    }
-  // Old way of AUTH
-  //   var user;
-  //   for(var i = 0; i < users.length; i++) {
-  //     if(users[i].id === req.query.id) {
-  //       user = users[i];
-  //     }
-  //   }
-
-    // if(!user) {
-    //   return res.status(404).end();
-    // }
-
-    // if(user.password === req.query.password) {
-    //   res.send( {users: [user]} );
-    // } else {
-    //   res.status(403).end();
-    // }
-
+    passport.authenticate('local', function(err, user, info) {
+      if (err) { return res.status(500).end(); }
+      if (!user) { return res.send({ users: [] }); }
+      req.logIn(user, function(err) {
+        if (err) { return res.status(500).end(); }
+        return res.send({ users: [user] });
+      });
+    })(req, res);
   } else {
-    res.send({users: users});
+    res.send({ users: users });
   }
+});
+
+app.get('/api/logout', checkForAuthentication, function(req, res) {
+  req.logout();
+  return res.send(true);
 });
 
 app.get('/api/posts', function(req, res) {
@@ -97,12 +116,16 @@ app.post('/api/users', function(req, res) {
   res.send({ user: user });
 });
 
-app.post('/api/posts', function(req, res) {
-  var post = req.body.post;
-  post.id = posts.length + 1;
-  posts.push(post);
+app.post('/api/posts', checkForAuthentication, function(req, res) {
+  if(req.user.id === req.body.post.user) {
+    var post = req.body.post;
+    post.id = posts.length + 1;
+    posts.push(post);
 
-  res.send({post: post});
+    return res.send({post: post});
+  } else {
+    return res.status(403).end();
+  }
 });
 
 var server = app.listen(3000, function() {
