@@ -73,8 +73,14 @@ app.get('/api/users', function(req, res) {
         return res.send({ users: [user] });
       });
     })(req, res);
+  } else if(req.query.isAuthenticated) {
+    if( req.isAuthenticated() ) {
+      return res.send({ users: [req.user] });
+    } else {
+      return res.send({ users: [] });
+    }
   } else {
-    res.send({ users: users });
+    return res.send({ users: users });
   }
 });
 
