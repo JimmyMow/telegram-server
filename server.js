@@ -4,31 +4,16 @@ var app = express();
 var session = require('express-session');
 var cookieParser = require('cookie-parser');
 var mongoose = require('mongoose');
-mongoose.connect('mongodb://localhost/telegram');
+var passport = require('passport');
 var connection = mongoose.connection;
 var Schema = mongoose.Schema;
+var logger = require('nlogger').logger(module);
 
-var userSchema = new Schema({
-  id:  String,
-  name: String,
-  email:   String,
-  picture: String,
-  password: String
-});
-
-var postSchema = new Schema({
-  id:  String,
-  body: String,
-  createdAt: { type: Date, default: Date.now },
-  user: String,
-  repost: String
-});
-
-var User = connection.model('User', userSchema);
-var Post = connection.model('Post', postSchema);
+// Models
+var User = require("./models/user");
+var Post = require("./models/post");
 
 // Passport
-var passport = require('passport')
 var LocalStrategy = require('passport-local').Strategy;
 app.use(cookieParser());
 app.use(bodyParser.json());
@@ -47,7 +32,6 @@ passport.serializeUser(function(user, done) {
 passport.deserializeUser(function(id, done) {
   User.findOne({"id": id}, function(err, user) {
     if(err){ return done(err); }
-
     return done(null, user);
   });
 });
@@ -58,22 +42,31 @@ passport.use(new LocalStrategy({
   function(username, password, done) {
     User.findOne({"id": username}, function(err, user) {
       if(err){ return done(err); }
-
       if(!user) {
         return done(null, false, { message: 'Incorrect username.' });
       }
-
       if(user.password !== password) {
-
         return done(null, false, { message: 'Incorrect password.' });
       }
-
       return done(null, user);
     });
   }
 ));
 
-// Middleware functions
+// Middleware
+app.use(function(req, res, next) {
+  req.User = User;
+  req.Post = Post;
+  req.emberUser = function emberUser(user) {
+    var newUser = {
+      id: user.id,
+      name: user.name
+    };
+    return newUser;
+  };
+  next();
+});
+
 function checkForAuthentication(req, res, next) {
   if( req.isAuthenticated() ) {
     return next();
@@ -83,103 +76,23 @@ function checkForAuthentication(req, res, next) {
 }
 
 // Route implementation
-app.get('/api/users', function(req, res) {
-  if(req.query.operation === 'login') {
-    passport.authenticate('local', function(err, user, info) {
-      if (err) { return res.status(500).end(); }
-      if (!user) { return res.send({ users: [] }); }
-      req.logIn(user, function(err) {
-        if (err) { return res.status(500).end(); }
-        return res.send({ users: [user] });
-      });
-    })(req, res);
-  } else if(req.query.isAuthenticated) {
-    if( req.isAuthenticated() ) {
-      return res.send({ users: [req.user] });
-    } else {
-      return res.send({ users: [] });
-    }
-  } else {
-    User.find(function(err, users) {
-      if(err) { return res.send(err); }
+var routes = require('./routes/index');
 
-      return res.send({ users: users });
-    });
-  }
-});
+app.get('/api/logout', checkForAuthentication, routes.auth.logout);
 
-app.get('/api/logout', checkForAuthentication, function(req, res) {
-  req.logout();
-  return res.send(true);
-});
+app.get('/api/users', routes.auth.index);
+app.get('/api/users/:id', routes.users.show);
+app.post('/api/users', routes.users.create);
 
-app.get('/api/posts', function(req, res) {
-  var username = req.query.user;
+app.get('/api/posts', routes.posts.index);
+app.post('/api/posts', checkForAuthentication, routes.posts.create);
+app.delete('/api/posts/:id', routes.posts.delete);
 
-  if(username) {
-    Post.find( { $or : [ { $and : [ { user : username }, { repost : null } ] }, { repost: username } ] }, function(err, posts) {
-      if(err) { return res.send(err); }
+// Mongoose
+mongoose.connect('mongodb://localhost/telegram');
 
-      return res.send( {posts: posts} );
-    });
-  } else {
-    Post.find(function(err, posts) {
-      if(err) { return res.send(err); }
-
-      return res.send( {posts: posts} );
-    });
-  }
-});
-
-app.get('/api/users/:id', function(req, res) {
-  User.findOne({"id": req.params.id}, function(err, user) {
-    if(err) { return res.status(404).end(); }
-
-    return res.send({ user: user });
+connection.once('open', function() {
+  var server = app.listen(3000, function() {
+      console.log('Listening on port %d', server.address().port);
   });
-});
-
-app.post('/api/users', function(req, res) {
-  var user = new User({
-    id: req.body.user.id,
-    name: req.body.user.name,
-    email: req.body.user.email,
-    password: req.body.user.password
-  })
-  user.save(function(err, user){
-    if(err) { return res.status(500).end(); }
-    return res.send({ user: user });
-  });
-});
-
-app.post('/api/posts', checkForAuthentication, function(req, res) {
-  if(req.user.id === req.body.post.user || req.user.id === req.body.post.repost) {
-    var post = new Post({
-      body: req.body.post.body,
-      user: req.body.post.user,
-      repost: req.body.post.repost,
-      createdAt: req.body.post.createdAt
-    });
-
-    post.save(function(err, post){
-      if(err) { return res.status(500).end(); }
-      return res.send({ post: post });
-    });
-  } else {
-    return res.status(403).end();
-  }
-});
-
-app.delete('/api/posts/:id', function(req, res) {
-  var postID = req.params.id;
-
-  User.remove({id: postID}, function(err, result) {
-    if(err) { return res.send(err); }
-
-    return res.send({});
-  });
-});
-
-var server = app.listen(3000, function() {
-    console.log('Listening on port %d', server.address().port);
 });
