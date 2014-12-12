@@ -9,4 +9,12 @@ var userSchema = new Schema({
   password: String
 });
 
-module.exports = mongoose.model('User', userSchema);
+userSchema.methods.emberUser = function emberUser() {
+  var newUser = {
+    id: this.id,
+    name: this.name
+  };
+  return newUser;
+};
+
+module.exports = userSchema;

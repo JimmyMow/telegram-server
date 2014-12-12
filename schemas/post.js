@@ -9,4 +9,4 @@ var postSchema = new Schema({
   repost: String
 });
 
-module.exports = mongoose.model('Post', postSchema);
+module.exports = postSchema;
