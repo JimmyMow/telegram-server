@@ -6,7 +6,8 @@ var userSchema = new Schema({
   name: String,
   email:   String,
   picture: String,
-  password: String
+  password: String,
+  following: []
 });
 
 userSchema.methods.emberUser = function emberUser() {

@@ -1,6 +1,5 @@
 var express = require('express');
 var app = express();
-var logger = require('nlogger').logger(module);
 var connection = require('./database/database');
 require('./middleware/express-config')(app);
 var routes = require('./router/index')(app);

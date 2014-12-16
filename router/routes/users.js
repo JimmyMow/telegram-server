@@ -7,7 +7,6 @@ var User = connection.model('User');
 router.get('/', function(req, res) {
   if(req.query.operation === 'login') {
     passport.authenticate('local', function(err, user, info) {
-
       if (err) { return res.status(500).end(); }
       if (!user) { return res.send({ users: [] }); }
       req.logIn(user, function(err) {
@@ -15,6 +14,16 @@ router.get('/', function(req, res) {
         return res.send({ users: [user.emberUser()] });
       });
     })(req, res);
+  } else if(req.query.follow) {
+    var whoToFollow = req.query.follow;
+    User.findOneAndUpdate(
+      { id: req.user.id },
+      {$addToSet:
+        { following: whoToFollow }
+      }, function(err, user) {
+        if(err) { res.send(err); }
+        res.send({users: []});
+      });
   } else if(req.query.isAuthenticated) {
     if( req.isAuthenticated() ) {
       return res.send({ users: [req.user.emberUser()] });
