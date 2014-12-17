@@ -14,7 +14,7 @@ router.get('/', function(req, res) {
         return res.send({ users: [user.emberUser()] });
       });
     })(req, res);
-  } else if(req.query.follow) {
+  } else if(req.query.operation === 'follow') {
     var whoToFollow = req.query.follow;
     User.findOneAndUpdate(
       { id: req.user.id },
@@ -22,8 +22,43 @@ router.get('/', function(req, res) {
         { following: whoToFollow }
       }, function(err, user) {
         if(err) { res.send(err); }
-        res.send({users: []});
+        res.send({users: [user.emberUser()]});
       });
+  } else if(req.query.operation === 'unfollow') {
+    var whoToUnfollow = req.query.unfollow;
+    User.findOneAndUpdate(
+      { id: req.user.id },
+      {$pull:
+        { following: whoToUnfollow }
+      }, function(err, user) {
+        if(err) {
+          res.send(err);
+        }
+        res.send({users: [user.emberUser()]});
+      });
+  } else if(req.query.operation === 'following') {
+    var userIds;
+    User.findOne({id: req.user.id}, function(err, user) {
+      if(err) { res.send(err); }
+      var userIds = user.following;
+      User.find({
+        id: { $in: userIds}
+      }, function(err, users){
+        if(err) { res.send(err); }
+        var emberUsers = users.map(function(user) {
+          return user.emberUser();
+        });
+        return res.send({ users: emberUsers });
+      });
+    });
+  } else if(req.query.operation === 'followers') {
+    User.find({following: 'bill'}, function(err, users) {
+      if(err) { return res.send(err); }
+      var emberUsers = users.map(function(user) {
+        return user.emberUser();
+      });
+      return res.send({ users: emberUsers });
+    });
   } else if(req.query.isAuthenticated) {
     if( req.isAuthenticated() ) {
       return res.send({ users: [req.user.emberUser()] });
