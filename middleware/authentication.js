@@ -8,8 +8,11 @@ passport.serializeUser(function(user, done) {
 });
 
 passport.deserializeUser(function(id, done) {
-  User.findOne({"id": id}, function(err, user) {
-    if(err){ return done(err); }
+  User.findOne({id: id}, function(err, user) {
+    if(err){
+      res.sendStatusCode(500);
+      return done(err);
+    }
     return done(null, user);
   });
 });
@@ -19,7 +22,10 @@ passport.use(new LocalStrategy({
   },
   function(username, password, done) {
     User.findOne({"id": username}, function(err, user) {
-      if(err){ return done(err); }
+      if(err){
+        res.sendStatusCode(500);
+        return done(err);
+      }
       if(!user) {
         return done(null, false, { message: 'Incorrect username.' });
       }

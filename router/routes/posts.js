@@ -8,12 +8,17 @@ router.get('/', function(req, res) {
   var username = req.query.user;
   if(username) {
     Post.find( { $or : [ { $and : [ { user : username }, { repost : null } ] }, { repost: username } ] }, function(err, posts) {
-      if(err) { return res.send(err); }
+      if(err) {
+        return res.send(err);
+      }
       return res.send( {posts: posts} );
     });
   } else {
     Post.find(function(err, posts) {
-      if(err) { return res.send(err); }
+      if(err) {
+        res.sendStatusCode(500);
+        return res.send(err);
+      }
       return res.send( {posts: posts} );
     });
   }
@@ -29,7 +34,10 @@ router.post('/', checkForAuthentication, function(req, res) {
     });
 
     post.save(function(err, post){
-      if(err) { return res.status(500).end(); }
+      if(err) {
+        res.sendStatusCode(500);
+        return res.status(500).end();
+      }
       return res.send({ post: post });
     });
   } else {
@@ -40,10 +48,12 @@ router.post('/', checkForAuthentication, function(req, res) {
 router.delete('/:id', function(req, res) {
   var postID = req.params.id;
   Post.findByIdAndRemove(postID, function(err, result) {
-    if(err) { return res.send(err); }
+    if(err) {
+      res.sendStatusCode(500);
+      return res.send(err);
+    }
     return res.send({});
   });
 });
 
 module.exports = router;
-
