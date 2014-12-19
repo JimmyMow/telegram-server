@@ -10,7 +10,6 @@ passport.serializeUser(function(user, done) {
 passport.deserializeUser(function(id, done) {
   User.findOne({id: id}, function(err, user) {
     if(err){
-      res.sendStatusCode(500);
       return done(err);
     }
     return done(null, user);
@@ -21,9 +20,8 @@ passport.use(new LocalStrategy({
     usernameField: 'id',
   },
   function(username, password, done) {
-    User.findOne({"id": username}, function(err, user) {
+    User.findOne({id: username}, function(err, user) {
       if(err){
-        res.sendStatusCode(500);
         return done(err);
       }
       if(!user) {

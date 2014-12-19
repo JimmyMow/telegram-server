@@ -10,7 +10,7 @@ var userSchema = new Schema({
   following: []
 });
 
-userSchema.methods.emberUser = function emberUser() {
+userSchema.methods.emberUser = function emberUser(loggedInUser) {
   var newUser = {
     id: this.id,
     name: this.name

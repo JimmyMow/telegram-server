@@ -7,7 +7,7 @@ var User = connection.model('User');
 router.get('/', function(req, res) {
   switch(req.query.operation){
     case 'login':
-      passport.authenticate('local', function(err, user, info) {
+    passport.authenticate('local', function(err, user, info) {
         if (err) {
           return res.status(500).end();
         }
@@ -30,8 +30,7 @@ router.get('/', function(req, res) {
           { following: whoToFollow }
         }, function(err, user) {
           if(err) {
-            res.sendStatusCode(500);
-            res.send(err);
+            return res.sendStatus(500);
           }
           res.send({users: [user.emberUser()]});
         });
@@ -44,8 +43,7 @@ router.get('/', function(req, res) {
           { following: whoToUnfollow }
         }, function(err, user) {
           if(err) {
-            res.sendStatusCode(500);
-            res.send(err);
+            return res.sendStatus(500);
           }
           res.send({users: [user.emberUser()]});
         });
@@ -53,13 +51,15 @@ router.get('/', function(req, res) {
     case 'following':
       var userIds;
       User.findOne({id: req.user.id}, function(err, user) {
-        if(err) { res.send(err); }
+        if(err) {
+          return res.sendStatus(500);
+        }
         var userIds = user.following;
         User.find({
           id: { $in: userIds}
         }, function(err, users){
           if(err) {
-            res.sendStatusCode(500);
+            res.sendStatus(500);
             res.send(err);
           }
           var emberUsers = users.map(function(user) {
@@ -72,8 +72,7 @@ router.get('/', function(req, res) {
     case 'followers':
       User.find({following: 'bill'}, function(err, users) {
         if(err) {
-          res.sendStatusCode(500);
-          return res.send(err);
+          return res.sendStatus(500);
         }
         var emberUsers = users.map(function(user) {
           return user.emberUser();
@@ -91,8 +90,7 @@ router.get('/', function(req, res) {
     default:
       User.find(function(err, users) {
         if(err) {
-          res.sendStatusCode(500);
-          return res.send(err);
+          return res.sendStatus(500);
         }
         var emberUsers = users.map(function(user) {
           return user.emberUser();
@@ -112,18 +110,35 @@ router.get('/:id', function(req, res) {
 });
 
 router.post('/', function(req, res) {
-  var user = new User({
-    id: req.body.user.id,
-    name: req.body.user.name,
-    email: req.body.user.email,
-    password: req.body.user.password
-  })
-  user.save(function(err, user){
-    if(err) {
-      return res.status(500).end();
-    }
-    return res.send({ user: user });
-  });
+  if(req.body.user.meta.operation === 'login') {
+    passport.authenticate('local', function(err, user, info) {
+        if (err) {
+          return res.status(500).end();
+        }
+        if (!user) {
+          return res.send({ user: null });
+        }
+        req.logIn(user, function(err) {
+          if (err) {
+            return res.status(500).end();
+          }
+          return res.send({ user: user.emberUser() });
+        });
+      })(req, res);
+  } else {
+    var user = new User({
+      id: req.body.user.id,
+      name: req.body.user.name,
+      email: req.body.user.email,
+      password: req.body.user.password
+    })
+    user.save(function(err, user){
+      if(err) {
+        return res.status(500).end();
+      }
+      return res.send({ user: user });
+    });
+  }
 });
 
 module.exports = router;

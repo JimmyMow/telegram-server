@@ -16,8 +16,7 @@ router.get('/', function(req, res) {
   } else {
     Post.find(function(err, posts) {
       if(err) {
-        res.sendStatusCode(500);
-        return res.send(err);
+        return res.sendStatus(500);
       }
       return res.send( {posts: posts} );
     });
@@ -35,7 +34,6 @@ router.post('/', checkForAuthentication, function(req, res) {
 
     post.save(function(err, post){
       if(err) {
-        res.sendStatusCode(500);
         return res.status(500).end();
       }
       return res.send({ post: post });
@@ -49,8 +47,7 @@ router.delete('/:id', function(req, res) {
   var postID = req.params.id;
   Post.findByIdAndRemove(postID, function(err, result) {
     if(err) {
-      res.sendStatusCode(500);
-      return res.send(err);
+      return res.sendStatus(500);
     }
     return res.send({});
   });
