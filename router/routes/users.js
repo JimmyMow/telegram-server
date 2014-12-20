@@ -3,37 +3,13 @@ var router = express.Router();
 var passport = require('../../middleware/authentication');
 var connection = require('../../database/database');
 var User = connection.model('User');
+var checkForAuthentication = require('../../middleware/ensureAuth');
 
 router.get('/', function(req, res) {
   switch(req.query.operation){
     case 'login':
-    passport.authenticate('local', function(err, user, info) {
-        if (err) {
-          return res.status(500).end();
-        }
-        if (!user) {
-          return res.send({ users: [] });
-        }
-        req.logIn(user, function(err) {
-          if (err) {
-            return res.status(500).end();
-          }
-          return res.send({ users: [user.emberUser()] });
-        });
-      })(req, res);
       break;
     case 'follow':
-      var whoToFollow = req.query.follow;
-      User.findOneAndUpdate(
-        { id: req.user.id },
-        {$addToSet:
-          { following: whoToFollow }
-        }, function(err, user) {
-          if(err) {
-            return res.sendStatus(500);
-          }
-          res.send({users: [user.emberUser()]});
-        });
       break;
     case 'unfollow':
       var whoToUnfollow = req.query.unfollow;
@@ -109,6 +85,37 @@ router.get('/:id', function(req, res) {
   });
 });
 
+router.put('/:id', checkForAuthentication, function(req, res) {
+  switch(req.body.user.meta.operation) {
+    case 'follow':
+      var whoToFollow = req.body.user.meta.userId;
+      User.findOneAndUpdate(
+        { id: req.user.id },
+        {$addToSet:
+          { following: whoToFollow }
+        }, function(err, user) {
+        if(err) {
+          return res.sendStatus(500);
+        }
+        res.send({user: user.emberUser()});
+      });
+    break;
+    case 'unfollow':
+      var whoToUnfollow = req.body.user.meta.userId;
+      User.findOneAndUpdate(
+        { id: req.user.id },
+        {$pull:
+          { following: whoToUnfollow }
+        }, function(err, user) {
+        if(err) {
+          return res.sendStatus(500);
+        }
+        res.send({user: user.emberUser()});
+      });
+    break;
+  }
+});
+
 router.post('/', function(req, res) {
   if(req.body.user.meta.operation === 'login') {
     passport.authenticate('local', function(err, user, info) {
@@ -116,7 +123,7 @@ router.post('/', function(req, res) {
           return res.status(500).end();
         }
         if (!user) {
-          return res.send({ user: null });
+          return res.send({ user: false });
         }
         req.logIn(user, function(err) {
           if (err) {
