@@ -97,14 +97,16 @@ router.post('/', function(req, res) {
       email: req.body.user.email
     })
     var salt = bcrypt.genSaltSync(10);
-    var hash = bcrypt.hashSync('B4c0/\/', salt);
+    var hash = bcrypt.hashSync(req.body.user.password, salt);
     user.password = hash;
 
     user.save(function(err, user){
-      if(err) {
-        return res.status(500).end();
-      }
-      return res.send({ user: user });
+      req.logIn(user, function(err) {
+        if (err) {
+          return res.status(500).end();
+        }
+        return res.send({ user: user.emberUser() });
+      });
     });
   }
 });
