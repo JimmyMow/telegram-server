@@ -29,10 +29,12 @@ passport.use(new LocalStrategy({
       if(!user) {
         return done(null, false, { message: 'Incorrect username.' });
       }
-      if( !bcrypt.compareSync(password, user.password) ) {
-        return done(null, false, { message: 'Incorrect password.' });
-      }
-      return done(null, user);
+      user.checkPassword(password, function(err, res, info) {
+        if(!res) {
+          return done(null, false, { message: 'Incorrect password.' });
+        }
+        return done(null, user);
+      });
     });
   }
 ));

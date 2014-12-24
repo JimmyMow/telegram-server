@@ -96,18 +96,26 @@ router.post('/', function(req, res) {
       name: req.body.user.name,
       email: req.body.user.email
     })
-    var salt = bcrypt.genSaltSync(10);
-    var hash = bcrypt.hashSync(req.body.user.password, salt);
-    user.password = hash;
 
-    user.save(function(err, user){
-      req.logIn(user, function(err) {
-        if (err) {
-          return res.status(500).end();
-        }
-        return res.send({ user: user.emberUser() });
+    User.hashPassword(req.body.user.password, function(err, hash) {
+      if(err) {
+        return res.sendStatus(500);
+      }
+      if(!hash) {
+        return res.sendStatus(500);
+      }
+      user.password = hash;
+
+      user.save(function(err, user){
+        req.logIn(user, function(err) {
+          if (err) {
+            return res.status(500).end();
+          }
+          return res.send({ user: user.emberUser() });
+        });
       });
     });
+
   }
 });
 
