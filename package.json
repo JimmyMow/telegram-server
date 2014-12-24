@@ -11,6 +11,7 @@
     "passport": "0.2.1",
     "passport-local": "1.0.0",
     "mongoose": "3.8.20",
-    "nlogger": "0.4.0"
+    "nlogger": "0.4.0",
+    "bcrypt": "0.8.0"
   }
 }
