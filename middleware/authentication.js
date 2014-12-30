@@ -9,12 +9,7 @@ passport.serializeUser(function(user, done) {
 });
 
 passport.deserializeUser(function(id, done) {
-  User.findOne({id: id}, function(err, user) {
-    if(err){
-      return done(err);
-    }
-    return done(null, user);
-  });
+  User.findOne({id: id}, done);
 });
 
 passport.use(new LocalStrategy({
@@ -29,7 +24,10 @@ passport.use(new LocalStrategy({
       if(!user) {
         return done(null, false, { message: 'Incorrect username.' });
       }
-      user.checkPassword(password, function(err, res, info) {
+      user.checkPassword(password, function(err, res) {
+        if(err) {
+          return done(err);
+        }
         if(!res) {
           return done(null, false, { message: 'Incorrect password.' });
         }

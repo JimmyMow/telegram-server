@@ -13,6 +13,15 @@ router.get('/', function(req, res) {
       }
       return res.send( {posts: posts} );
     });
+  } else if(req.query.operation === 'dashboard') {
+    var postUsers = req.user.following.push(req.user.id);
+    Post.find( { user : { $in : req.user.following } }, function(err, posts){
+      if(err){
+        return res.send(err);
+      }
+      return res.send( {posts: posts} );
+    });
+
   } else {
     Post.find(function(err, posts) {
       if(err) {
@@ -25,14 +34,7 @@ router.get('/', function(req, res) {
 
 router.post('/', checkForAuthentication, function(req, res) {
   if(req.user.id === req.body.post.user || req.user.id === req.body.post.repost) {
-    var post = new Post({
-      body: req.body.post.body,
-      user: req.body.post.user,
-      repost: req.body.post.repost,
-      createdAt: req.body.post.createdAt
-    });
-
-    post.save(function(err, post){
+    Post.create(req.body.post, function(err, post) {
       if(err) {
         return res.status(500).end();
       }

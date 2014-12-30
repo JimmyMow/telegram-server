@@ -9,28 +9,16 @@ var checkForAuthentication = require('../../middleware/ensureAuth');
 router.get('/', function(req, res) {
   switch(req.query.operation){
     case 'following':
-      following(req.query.user, req, res);
+      handleGetFollowingRequest(req.query.user, req, res);
     break;
     case 'followers':
-      followers(req.query.user, req, res);
+      handleGetFollowersRequest(req.query.user, req, res);
       break;
     case 'authenticate':
-      if( req.isAuthenticated() ) {
-        return res.send({ users: [req.user.emberUser()] });
-      } else {
-        return res.send({ users: [] });
-      }
+      handleCheckAuthRequest(req, res);
     break;
     default:
-      User.find(function(err, users) {
-        if(err) {
-          return res.sendStatus(500);
-        }
-        var emberUsers = users.map(function(user) {
-          return user.emberUser();
-        });
-        return res.send({ users: emberUsers });
-      });
+      res.sendStatus(400);
   }
 });
 
@@ -39,7 +27,7 @@ router.get('/:id', function(req, res) {
     if(err) {
       return res.status(404).end();
     }
-    return res.send({ user: user });
+    return res.send({ user: user.emberUser(req.user) });
   });
 });
 
@@ -55,7 +43,7 @@ router.put('/:id', checkForAuthentication, function(req, res) {
         if(err) {
           return res.sendStatus(500);
         }
-        res.send({user: user.emberUser()});
+        res.send({user: user.emberUser(req.user)});
       });
     break;
     case 'unfollow':
@@ -68,7 +56,7 @@ router.put('/:id', checkForAuthentication, function(req, res) {
         if(err) {
           return res.sendStatus(500);
         }
-        res.send({user: user.emberUser()});
+        res.send({user: user.emberUser(req.user)});
       });
     break;
   }
@@ -121,7 +109,7 @@ router.post('/', function(req, res) {
 
 module.exports = router;
 
-function following(userId, req, res) {
+function handleGetFollowingRequest(userId, req, res) {
   User.findOne({id: userId}, function(err, user) {
     if(err) {
       return res.sendStatus(500);
@@ -135,21 +123,29 @@ function following(userId, req, res) {
         res.send(err);
       }
       var emberUsers = users.map(function(user) {
-        return user.emberUser();
+        return user.emberUser(req.user);
       });
       return res.send({ users: emberUsers });
     });
   });
 }
 
-function followers(userId, req, res) {
+function handleGetFollowersRequest(userId, req, res) {
   User.find({following: userId}, function(err, users) {
     if(err) {
       return res.sendStatus(500);
     }
     var emberUsers = users.map(function(user) {
-      return user.emberUser();
+      return user.emberUser(req.user);
     });
     return res.send({ users: emberUsers });
   });
+}
+
+function handleCheckAuthRequest(req, res){
+  if( req.isAuthenticated() ) {
+    return res.send({ users: [req.user.emberUser()] });
+  } else {
+    return res.send({ users: [] });
+  }
 }
