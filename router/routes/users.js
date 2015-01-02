@@ -6,6 +6,11 @@ var connection = require('../../database/database');
 var User = connection.model('User');
 var checkForAuthentication = require('../../middleware/ensureAuth');
 
+var api_key = 'key-c51e2b933c46f6e345bea404a4132061';
+var domain = 'sandboxa66c118a321744cf8ad88c5441bc673f.mailgun.org';
+var mailgun = require('mailgun-js')({apiKey: api_key, domain: domain});
+
+
 router.get('/', function(req, res) {
   switch(req.query.operation){
     case 'following':
@@ -63,48 +68,83 @@ router.put('/:id', checkForAuthentication, function(req, res) {
 });
 
 router.post('/', function(req, res) {
-  if(req.body.user.meta.operation === 'login') {
-    passport.authenticate('local', function(err, user, info) {
-        if (err) {
-          return res.status(500).end();
-        }
-        if (!user) {
-          return res.send({ user: false });
-        }
-        req.logIn(user, function(err) {
+  switch(req.body.user.meta.operation){
+    case 'login':
+      passport.authenticate('local', function(err, user, info) {
           if (err) {
-            return res.status(500).end();
+            return res.sendStatus(500);
           }
-          return res.send({ user: user.emberUser() });
+          if (!user) {
+            return res.send({ user: false });
+          }
+          req.logIn(user, function(err) {
+            if (err) {
+              return res.sendStatus(500);
+            }
+            return res.send({ user: user.emberUser() });
+          });
+        })(req, res);
+      break;
+      case 'reset_password':
+        var email = req.body.user.email;
+        var randomPassword = makePass();
+        User.hashPassword(randomPassword, function(err, hash) {
+          if(err) {
+            return res.sendStatus(500);
+          }
+          if(!hash) {
+            return res.sendStatus(500);
+          }
+          console.log(hash);
+          User.findOneAndUpdate({email: email}, {password: hash}, function(err, user) {
+            if(err) {
+              res.send(err);
+              console.log("Error while updating user");
+            }
+            console.log(user);
+            var data = {
+              from: 'postmaster@sandboxa66c118a321744cf8ad88c5441bc673f.mailgun.org',
+              to: email,
+              subject: 'Telegram reset password',
+              text: 'We are reseting your password. Here it is: ' + randomPassword
+            };
+            console.log(data);
+            mailgun.messages().send(data, function (err, body) {
+              if(err) {
+                res.send(err);
+                console.log("error while sending email");
+              }
+              res.send( {user: user.emberUser()} );
+            });
+          });
         });
-      })(req, res);
-  } else {
-    var user = new User({
-      id: req.body.user.id,
-      name: req.body.user.name,
-      email: req.body.user.email
-    })
+      break;
+      default:
+      var user = new User({
+        id: req.body.user.id,
+        name: req.body.user.name,
+        email: req.body.user.email
+      })
 
-    User.hashPassword(req.body.user.password, function(err, hash) {
-      if(err) {
-        return res.sendStatus(500);
-      }
-      if(!hash) {
-        return res.sendStatus(500);
-      }
-      user.password = hash;
+      User.hashPassword(req.body.user.password, function(err, hash) {
+        if(err) {
+          return res.sendStatus(500);
+        }
+        if(!hash) {
+          return res.sendStatus(500);
+        }
+        user.password = hash;
 
-      user.save(function(err, user){
-        req.logIn(user, function(err) {
-          if (err) {
-            return res.status(500).end();
-          }
-          return res.send({ user: user.emberUser() });
+        user.save(function(err, user){
+          req.logIn(user, function(err) {
+            if (err) {
+              return res.status(500).end();
+            }
+            return res.send({ user: user.emberUser() });
+          });
         });
       });
-    });
-
-  }
+    }
 });
 
 module.exports = router;
@@ -148,4 +188,14 @@ function handleCheckAuthRequest(req, res){
   } else {
     return res.send({ users: [] });
   }
+}
+
+function makePass() {
+  var text = "";
+  var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+  for( var i=0; i < 10; i++ )
+      text += possible.charAt(Math.floor(Math.random() * possible.length));
+
+  return text;
 }

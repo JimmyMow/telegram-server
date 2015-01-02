@@ -12,7 +12,6 @@ var userSchema = new Schema({
 });
 
 userSchema.methods.emberUser = function(loggedInUser) {
-
   var newUser = {
     id: this.id,
     name: this.name
