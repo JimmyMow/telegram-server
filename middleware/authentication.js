@@ -29,7 +29,7 @@ passport.use(new LocalStrategy({
           return done(err);
         }
         if(!res) {
-          return done(null, false, { message: 'Incorrect password.' });
+          return done(err, false, { message: 'Incorrect password.' });
         }
         return done(null, user);
       });

@@ -1,6 +1,7 @@
 var express = require('express');
 var router = express.Router();
 var bcrypt = require('bcrypt');
+var md5 = require('MD5');
 var passport = require('../../middleware/authentication');
 var connection = require('../../database/database');
 var User = connection.model('User');
@@ -88,31 +89,27 @@ router.post('/', function(req, res) {
       case 'reset_password':
         var email = req.body.user.email;
         var randomPassword = makePass();
-        User.hashPassword(randomPassword, function(err, hash) {
+        var randomPasswordMd5 = md5(randomPassword);
+        User.hashPassword(randomPasswordMd5, function(err, hash) {
           if(err) {
             return res.sendStatus(500);
           }
           if(!hash) {
             return res.sendStatus(500);
           }
-          console.log(hash);
           User.findOneAndUpdate({email: email}, {password: hash}, function(err, user) {
             if(err) {
               res.send(err);
-              console.log("Error while updating user");
             }
-            console.log(user);
             var data = {
               from: 'postmaster@sandboxa66c118a321744cf8ad88c5441bc673f.mailgun.org',
               to: email,
               subject: 'Telegram reset password',
               text: 'We are reseting your password. Here it is: ' + randomPassword
             };
-            console.log(data);
             mailgun.messages().send(data, function (err, body) {
               if(err) {
                 res.send(err);
-                console.log("error while sending email");
               }
               res.send( {user: user.emberUser()} );
             });

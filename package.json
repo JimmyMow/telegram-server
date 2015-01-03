@@ -13,6 +13,7 @@
     "mongoose": "3.8.20",
     "nlogger": "0.4.0",
     "bcrypt": "0.8.0",
-    "mailgun-js": "0.6.7"
+    "mailgun-js": "0.6.7",
+    "MD5": "1.2.1"
   }
 }
