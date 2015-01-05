@@ -2,14 +2,12 @@ var express = require('express');
 var router = express.Router();
 var bcrypt = require('bcrypt');
 var md5 = require('MD5');
+var nconf = require('nconf');
 var passport = require('../../middleware/authentication');
 var connection = require('../../database/database');
 var User = connection.model('User');
 var checkForAuthentication = require('../../middleware/ensureAuth');
-
-var api_key = 'key-c51e2b933c46f6e345bea404a4132061';
-var domain = 'sandboxa66c118a321744cf8ad88c5441bc673f.mailgun.org';
-var mailgun = require('mailgun-js')({apiKey: api_key, domain: domain});
+var mailgun = require('mailgun-js')({apiKey: nconf.get('mailgunKey'), domain: nconf.get('mailgunDomain')});
 
 
 router.get('/', function(req, res) {
