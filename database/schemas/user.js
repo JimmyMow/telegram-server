@@ -12,8 +12,6 @@ var userSchema = new Schema({
   following: []
 });
 
-// var User = mongoose.connection.model('User', userSchema);
-
 userSchema.methods.emberUser = function(loggedInUser) {
   var newUser = {
     id: this.id,
@@ -46,9 +44,9 @@ userSchema.methods.follow = function(whoToFollow, done) {
       { following: whoToFollow }
     }, function(err, user) {
     if(err) {
-      return res.sendStatus(500);
+      return done(err);
     }
-    res.send({user: user.emberUser(req.user)});
+    return done(null, user);
   });
 };
 
@@ -82,7 +80,7 @@ userSchema.statics.resetPassword = function(email, randomPassword, done) {
       return done(err);
     }
     if(!hash) {
-      return done(true);
+      return done(true, null);
     }
     _this.findOneAndUpdate({email: email}, {password: hash}, function(err, user) {
       if(err) {

@@ -7,8 +7,7 @@ var passport = require('../../middleware/authentication');
 var connection = require('../../database/database');
 var User = connection.model('User');
 var ensureAuthentication = require('../../middleware/ensureAuth');
-var mailgun = require('mailgun-js')({apiKey: nconf.get('mailgunKey'), domain: nconf.get('mailgunDomain')});
-
+var mailgun = require('mailgun-js')({apiKey: nconf.get('mailgun').key, domain: nconf.get('mailgun').domain});
 
 router.get('/', function(req, res) {
   switch(req.query.operation){
@@ -81,16 +80,17 @@ router.post('/', function(req, res) {
         var randomPassword = randomstring.generate(10);
         User.resetPassword(email, randomPassword, function(err, password) {
           var data = {
-            from: nconf.get('mailgunDomain'),
+            from: nconf.get('mailgun').from,
             to: email,
             subject: 'Telegram reset password',
-            text: 'We are reseting your password. Here it is: ' + randomPassword
+            text: 'We are reseting your password. Here it is: ' + password
           };
           mailgun.messages().send(data, function (err, body) {
             if(err) {
-              res.send(err);
+              console.log(err);
+              return res.send(err);
             }
-            res.send( {user: user.emberUser()} );
+            return res.send( {user: {}} );
           });
         });
       break;
