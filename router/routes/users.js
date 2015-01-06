@@ -1,12 +1,12 @@
 var express = require('express');
 var router = express.Router();
 var bcrypt = require('bcrypt');
-var md5 = require('MD5');
-var nconf = require('nconf');
+var nconf = require('../../config/config');
+var randomstring = require('randomstring');
 var passport = require('../../middleware/authentication');
 var connection = require('../../database/database');
 var User = connection.model('User');
-var checkForAuthentication = require('../../middleware/ensureAuth');
+var ensureAuthentication = require('../../middleware/ensureAuth');
 var mailgun = require('mailgun-js')({apiKey: nconf.get('mailgunKey'), domain: nconf.get('mailgunDomain')});
 
 
@@ -35,32 +35,24 @@ router.get('/:id', function(req, res) {
   });
 });
 
-router.put('/:id', checkForAuthentication, function(req, res) {
+router.put('/:id', ensureAuthentication, function(req, res) {
   switch(req.body.user.meta.operation) {
     case 'follow':
       var whoToFollow = req.body.user.meta.userId;
-      User.findOneAndUpdate(
-        { id: req.user.id },
-        {$addToSet:
-          { following: whoToFollow }
-        }, function(err, user) {
+      req.user.follow(whoToFollow, function(err, user) {
         if(err) {
-          return res.sendStatus(500);
+          return res.send(err);
         }
-        res.send({user: user.emberUser(req.user)});
+        return res.send({ user: user.emberUser() });
       });
     break;
     case 'unfollow':
       var whoToUnfollow = req.body.user.meta.userId;
-      User.findOneAndUpdate(
-        { id: req.user.id },
-        {$pull:
-          { following: whoToUnfollow }
-        }, function(err, user) {
+      req.user.unfollow(whoToUnfollow, function(err, user) {
         if(err) {
-          return res.sendStatus(500);
+          return res.send(err);
         }
-        res.send({user: user.emberUser(req.user)});
+        return res.send({ user: user.emberUser() });
       });
     break;
   }
@@ -86,31 +78,19 @@ router.post('/', function(req, res) {
       break;
       case 'reset_password':
         var email = req.body.user.email;
-        var randomPassword = makePass();
-        var randomPasswordMd5 = md5(randomPassword);
-        User.hashPassword(randomPasswordMd5, function(err, hash) {
-          if(err) {
-            return res.sendStatus(500);
-          }
-          if(!hash) {
-            return res.sendStatus(500);
-          }
-          User.findOneAndUpdate({email: email}, {password: hash}, function(err, user) {
+        var randomPassword = randomstring.generate(10);
+        User.resetPassword(email, randomPassword, function(err, password) {
+          var data = {
+            from: nconf.get('mailgunDomain'),
+            to: email,
+            subject: 'Telegram reset password',
+            text: 'We are reseting your password. Here it is: ' + randomPassword
+          };
+          mailgun.messages().send(data, function (err, body) {
             if(err) {
               res.send(err);
             }
-            var data = {
-              from: 'postmaster@sandboxa66c118a321744cf8ad88c5441bc673f.mailgun.org',
-              to: email,
-              subject: 'Telegram reset password',
-              text: 'We are reseting your password. Here it is: ' + randomPassword
-            };
-            mailgun.messages().send(data, function (err, body) {
-              if(err) {
-                res.send(err);
-              }
-              res.send( {user: user.emberUser()} );
-            });
+            res.send( {user: user.emberUser()} );
           });
         });
       break;
@@ -119,24 +99,19 @@ router.post('/', function(req, res) {
         id: req.body.user.id,
         name: req.body.user.name,
         email: req.body.user.email
-      })
-
-      User.hashPassword(req.body.user.password, function(err, hash) {
+      });
+      User.createUser(user, req.body.user.password, function(err, user) {
         if(err) {
+          return res.send(err);
+        }
+        if(!user) {
           return res.sendStatus(500);
         }
-        if(!hash) {
-          return res.sendStatus(500);
-        }
-        user.password = hash;
-
-        user.save(function(err, user){
-          req.logIn(user, function(err) {
-            if (err) {
-              return res.status(500).end();
-            }
-            return res.send({ user: user.emberUser() });
-          });
+        req.logIn(user, function(err) {
+          if (err) {
+            return res.send(err);
+          }
+          return res.send({ user: user.emberUser() });
         });
       });
     }
@@ -183,14 +158,4 @@ function handleCheckAuthRequest(req, res){
   } else {
     return res.send({ users: [] });
   }
-}
-
-function makePass() {
-  var text = "";
-  var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-
-  for( var i=0; i < 10; i++ )
-      text += possible.charAt(Math.floor(Math.random() * possible.length));
-
-  return text;
 }

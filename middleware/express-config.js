@@ -2,7 +2,7 @@ var passport = require('../middleware/authentication');
 var bodyParser = require('body-parser');
 var cookieParser = require('cookie-parser');
 var session = require('express-session');
-var nconf = require('nconf');
+var nconf = require('../config/config');
 
 module.exports = function(app) {
   app.use(cookieParser());

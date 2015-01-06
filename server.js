@@ -2,7 +2,7 @@ var config = require('./config/config.js');
 var express = require('express');
 var app = express();
 var connection = require('./database/database');
-var nconf = require('nconf');
+var nconf = require('./config/config');
 require('./middleware/express-config')(app);
 require('./router/index')(app);
 
@@ -11,5 +11,3 @@ connection.once('open', function() {
       console.log('Listening on port %d', server.address().port);
   });
 });
-
-module.exports = app;

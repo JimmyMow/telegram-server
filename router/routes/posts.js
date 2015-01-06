@@ -2,10 +2,39 @@ var express = require('express');
 var router = express.Router();
 var connection = require('../../database/database');
 var Post = connection.model('Post');
-var checkForAuthentication = require('../../middleware/ensureAuth');
+var ensureAuthentication = require('../../middleware/ensureAuth');
 
 router.get('/', function(req, res) {
   var username = req.query.user;
+  handleDashboardPostRequest(username, req, res);
+});
+
+router.post('/', ensureAuthentication, function(req, res) {
+  if(req.user.id === req.body.post.user || req.user.id === req.body.post.repost) {
+    Post.create(req.body.post, function(err, post) {
+      if(err) {
+        return res.send(err);
+      }
+      return res.send({ post: post });
+    });
+  } else {
+    return res.sendStatus(403);
+  }
+});
+
+router.delete('/:id', function(req, res) {
+  var postID = req.params.id;
+  Post.findByIdAndRemove(postID, function(err, result) {
+    if(err) {
+      return res.sendStatus(500);
+    }
+    return res.send({});
+  });
+});
+
+module.exports = router;
+
+function handleDashboardPostRequest(username, req, res) {
   if(username) {
     Post.find( { $or : [ { $and : [ { user : username }, { repost : null } ] }, { repost: username } ] }, function(err, posts) {
       if(err) {
@@ -30,29 +59,4 @@ router.get('/', function(req, res) {
       return res.send( {posts: posts} );
     });
   }
-});
-
-router.post('/', checkForAuthentication, function(req, res) {
-  if(req.user.id === req.body.post.user || req.user.id === req.body.post.repost) {
-    Post.create(req.body.post, function(err, post) {
-      if(err) {
-        return res.status(500).end();
-      }
-      return res.send({ post: post });
-    });
-  } else {
-    return res.status(403).end();
-  }
-});
-
-router.delete('/:id', function(req, res) {
-  var postID = req.params.id;
-  Post.findByIdAndRemove(postID, function(err, result) {
-    if(err) {
-      return res.sendStatus(500);
-    }
-    return res.send({});
-  });
-});
-
-module.exports = router;
+}
