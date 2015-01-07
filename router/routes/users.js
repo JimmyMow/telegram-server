@@ -8,6 +8,7 @@ var connection = require('../../database/database');
 var User = connection.model('User');
 var ensureAuthentication = require('../../middleware/ensureAuth');
 var mailgun = require('mailgun-js')({apiKey: nconf.get('mailgun').key, domain: nconf.get('mailgun').domain});
+var sendEmailNotification = require('../../email/notification');
 
 router.get('/', function(req, res) {
   switch(req.query.operation){
@@ -79,16 +80,12 @@ router.post('/', function(req, res) {
         var email = req.body.user.email;
         var randomPassword = randomstring.generate(10);
         User.resetPassword(email, randomPassword, function(err, password) {
-          var data = {
-            from: nconf.get('mailgun').from,
-            to: email,
-            subject: 'Telegram reset password',
-            text: 'We are reseting your password. Here it is: ' + password
-          };
-          mailgun.messages().send(data, function (err, body) {
+          sendEmailNotification(email, password, function(err, body) {
             if(err) {
-              console.log(err);
               return res.send(err);
+            }
+            if(!body) {
+              return res.sendStatus(500);
             }
             return res.send( {user: {}} );
           });
