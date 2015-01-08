@@ -3,16 +3,9 @@ var Handlebars = require('handlebars');
 var nconf = require('../config/config');
 var mailgun = require('mailgun-js')({apiKey: nconf.get('mailgun').key, domain: nconf.get('mailgun').domain});
 
-function readContent(done) {
-  fs.readFile(__dirname + "/template.hbs", "utf-8", function (err, template) {
-      if (err) {
-        return done(err)
-      }
-      return done(null, template)
-  });
-}
+var emailObj = exports;
 
-module.exports = function(email, password, done) {
+emailObj.sendPasswordReset = function(email, password, done) {
   readContent(function (err, template) {
     if(err) {
       return done(err);
@@ -23,13 +16,23 @@ module.exports = function(email, password, done) {
       from: nconf.get('mailgun').from,
       to: email,
       subject: 'Telegram reset password',
-      text: 'We are reseting your password. Here it is: ' + password
+      text: result
     };
     mailgun.messages().send(data, function (err, body) {
       if(err) {
+        console.log(err);
         return done(err);
       }
       return done(null, body);
     });
+  });
+};
+
+function readContent(done) {
+  fs.readFile(__dirname + "/template.hbs", "utf-8", function (err, template) {
+      if (err) {
+        return done(err)
+      }
+      return done(null, template)
   });
 }

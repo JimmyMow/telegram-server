@@ -37,11 +37,11 @@ userSchema.methods.checkPassword = function(password, done) {
   });
 };
 
-userSchema.methods.follow = function(whoToFollow, done) {
+userSchema.methods.follow = function(userId, done) {
   this.model('User').findOneAndUpdate(
     { id: this.id },
     {$addToSet:
-      { following: whoToFollow }
+      { following: userId }
     }, function(err, user) {
     if(err) {
       return done(err);
@@ -50,11 +50,11 @@ userSchema.methods.follow = function(whoToFollow, done) {
   });
 };
 
-userSchema.methods.unfollow = function(whoToUnfollow, done) {
+userSchema.methods.unfollow = function(userId, done) {
   this.model('User').findOneAndUpdate(
     { id: this.id },
     {$pull:
-      { following: whoToUnfollow }
+      { following: userId }
     }, function(err, user) {
     if(err) {
       return done(err, null);
@@ -66,14 +66,14 @@ userSchema.methods.unfollow = function(whoToUnfollow, done) {
 userSchema.statics.hashPassword = function(password, done) {
   bcrypt.hash(password, 10, function(err, hash) {
     if(err) {
-      return done(err, false);
+      return done(err);
     }
     return done(null, hash);
   });
 }
 
-userSchema.statics.resetPassword = function(email, randomPassword, done) {
-  var randomPasswordMd5 = md5(randomPassword);
+userSchema.statics.resetPassword = function(email, newPassword, done) {
+  var randomPasswordMd5 = md5(newPassword);
   var _this = this;
   this.hashPassword(randomPasswordMd5, function(err, hash) {
     if(err) {
@@ -86,7 +86,7 @@ userSchema.statics.resetPassword = function(email, randomPassword, done) {
       if(err) {
         return done(err);
       }
-      return done(null, randomPassword);
+      return done(null, newPassword);
     });
   });
 };
