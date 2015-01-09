@@ -3,7 +3,7 @@ var router = express.Router();
 var logger = require('nlogger').logger(module);
 var checkForAuthentication = require('../../middleware/ensureAuth');
 
-router.get('/', checkForAuthentication, function(req, res) {
+router.post('/', checkForAuthentication, function(req, res) {
   req.logout();
   return res.send(true);
 });

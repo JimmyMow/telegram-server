@@ -20,23 +20,15 @@ router.get('/', function(req, res) {
 });
 
 router.post('/', ensureAuthentication, function(req, res) {
-  var post = {
-    body: req.body.post.body,
-    createdAt: req.body.post.createdAt
-  }
-  if(req.body.post.repost) {
-    post.user = req.body.post.repost;
-    post.owner = req.body.post.user;
-  } else {
-    post.user = req.body.post.user;
-  }
-  if(req.user.id === req.body.post.user || req.user.id === req.body.post.repost) {
-    Post.create(post, function(err, post) {
+  if(req.user.id === req.body.post.creator) {
+    Post.create(req.body.post, function(err, post) {
       if(err) {
         return res.send(err);
         logger.error('Could not craete post:', err);
+        console.log(err);
       }
-      return res.send({ post: post.emberPost() });
+      console.log("HERE");
+      return res.send({ post: post });
     });
   } else {
     return res.sendStatus(403);
@@ -58,30 +50,25 @@ module.exports = router;
 
 function handleUserProfile(req, res) {
   var username = req.query.user;
-  Post.find( { user : username }, function(err, posts) {
+  Post.find( { creator : username }, function(err, posts) {
     if(err) {
       return res.send(err);
       logger.error('Could not find post:', err);
     }
-    var emberPosts = posts.map(function(post) {
-      return post.emberPost();
-    });
-    return res.send( {posts: emberPosts} );
+
+    return res.send( {posts: posts} );
   });
 }
 
 function handleDashboard(req, res) {
   if ( req.isAuthenticated() ) {
     var postUsers = req.user.following.push(req.user.id);
-    Post.find( { user : { $in : req.user.following } }, function(err, posts){
+    Post.find( { creator : { $in : req.user.following } }, function(err, posts){
       if(err){
         return res.send(err);
         logger.error('Could not find post:', err);
       }
-      var emberPosts = posts.map(function(post) {
-        return post.emberPost();
-      });
-      return res.send( {posts: emberPosts} );
+      return res.send( {posts: posts} );
     });
   } else {
     res.sendStatus(403);

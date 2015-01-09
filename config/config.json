@@ -1,7 +1,0 @@
-{
-  "database": "mongodb://localhost/telegram",
-  "port": 3000,
-  "sessionSecret": "scoop",
-  "mailgunKey": "c51e2b933c46f6e345bea404a4132061",
-  "mailgunDomain": "sandboxa66c118a321744cf8ad88c5441bc673f"
-}
